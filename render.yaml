@@ -1,0 +1,10 @@
+# Configuración para Render (https://render.com).
+# Si creas el servicio a mano con "New > Web Service", usa estos mismos valores (ver GUIA-INTERNET.md).
+services:
+  - type: web
+    name: blocky-strike
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health

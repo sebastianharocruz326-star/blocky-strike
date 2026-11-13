@@ -1,0 +1,13 @@
+{
+  "name": "blocky-strike",
+  "version": "1.5.12",
+  "description": "FPS multijugador en el navegador (Three.js + Node.js)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18 <25"
+  }
+}

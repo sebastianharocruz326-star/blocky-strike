@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blocky Strike</title>
+<meta name="theme-color" content="#101216">
+<meta name="description" content="Shooter 3D en primera persona con estilo de bloques. Juega contra bots o en línea con amigos.">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:system-ui,Arial,sans-serif;color:#fff;user-select:none}
+  canvas{display:block}
+  #overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;text-align:center;z-index:10}
+  #overlay .box{max-width:520px;padding:28px;background:rgba(8,10,14,.82);border:1px solid #fff2;border-radius:10px;backdrop-filter:blur(6px)}
+  #overlay h1{font-size:42px;letter-spacing:3px;margin-bottom:4px}
+  #overlay h1 span{color:#f5a623}
+  #overlay p{opacity:.85;margin:6px 0;line-height:1.5}
+  #overlay input{width:100%;padding:11px 12px;margin:12px 0 4px;font-size:16px;border-radius:6px;border:1px solid #666;background:#111;color:#fff;text-align:center;user-select:text}
+  #overlay button{margin:10px 6px 0;padding:12px 24px;font-size:16px;font-weight:700;border:0;border-radius:6px;cursor:pointer;background:#f5a623;color:#000}
+  #overlay button.alt{background:#2e6db0;color:#fff}
+  #overlay button.ghost{background:#333;color:#fff}
+  #overlay button:hover{filter:brightness(1.15)}
+  #menuerr,#pausemsg{color:#ffd24d;min-height:22px;margin-top:10px}
+  #overlay select{width:100%;padding:11px 12px;margin:12px 0 4px;font-size:16px;border-radius:6px;border:1px solid #666;background:#111;color:#fff;text-align:center}
+  #scope{display:none;position:fixed;inset:0;z-index:4;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 0,transparent 26vmin,#000 27vmin)}
+  #scope::before{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:#000}
+  #scope::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:1px;background:#000}
+  #minimap{position:fixed;left:24px;top:48px;width:150px;height:150px;z-index:5;border:1px solid #fff5;border-radius:6px;display:none;pointer-events:none}
+  #roundbar{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:5;pointer-events:none;font-weight:700;font-size:18px;background:#0008;padding:4px 16px;border-radius:4px;text-shadow:0 0 4px #000;display:none}
+  #banner{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:6;pointer-events:none;text-align:center;background:#000a;border:1px solid #fff4;border-radius:8px;padding:14px 26px;font-weight:700;display:none;min-width:260px}
+  #banner h2{margin:0 0 8px;color:#ffd24d;font-size:24px}
+  #banner table{margin:6px auto 0;border-collapse:collapse;font-size:16px}
+  #banner td,#banner th{padding:2px 12px}
+  #shield{position:fixed;inset:0;pointer-events:none;z-index:4;display:none;box-shadow:inset 0 0 90px 18px rgba(60,160,255,.55);animation:shp .5s infinite alternate}
+  @keyframes shp{from{opacity:.5}to{opacity:1}}
+  #mutelist{margin-top:12px;font-size:14px}
+  #mutelist button{margin:3px;padding:4px 10px;font-size:13px}
+  #opts{margin-top:14px;padding-top:12px;border-top:1px solid #fff2;text-align:left;display:none}
+  #opts label{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0;font-size:14px}
+  #opts input[type=range]{flex:1;accent-color:#f5a623}
+  #opts .val{min-width:36px;text-align:right;opacity:.85;font-variant-numeric:tabular-nums}
+  #mapBrowser{display:none;position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:16px}
+  #mapBrowser.open{display:flex}
+  #mapBrowser .mbox{max-width:920px;width:100%;background:rgba(10,12,16,.94);border:1px solid #fff3;border-radius:12px;padding:18px 20px 20px;text-align:center}
+  #mapBrowser h2{font-size:22px;letter-spacing:2px;margin-bottom:4px}
+  #mapBrowser .sub{opacity:.7;font-size:13px;margin-bottom:14px}
+  #mapGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+  #mapGrid .mcard{border:2px solid #444;border-radius:10px;overflow:hidden;cursor:pointer;background:#0c0e12;transition:border-color .15s,transform .15s;text-align:left}
+  #mapGrid .mcard:hover{border-color:#f5a623;transform:translateY(-2px)}
+  #mapGrid .mcard.on{border-color:#f5a623;box-shadow:0 0 0 1px #f5a623}
+  #mapGrid .mcard canvas{display:block;width:100%;height:auto;background:#222}
+  #mapGrid .mcard .lab{padding:8px 10px;font-size:14px;font-weight:700}
+  #mapGrid .mcard .desc{padding:0 10px 10px;font-size:12px;opacity:.7;line-height:1.4}
+  #mapBrowser .actions{margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  #mapBrowser .actions button{min-width:120px}
+  #btnMaps{margin-top:6px}
+  #invBrowser{display:none;position:fixed;inset:0;z-index:26;background:rgba(0,0,0,.75);align-items:center;justify-content:center;padding:12px}
+  #invBrowser.open{display:flex}
+  #invBrowser .ibox{max-width:860px;width:100%;background:rgba(10,12,18,.95);border:1px solid #fff3;border-radius:12px;padding:16px 18px;display:grid;grid-template-columns:1fr 200px;gap:14px}
+  #invBrowser h2{grid-column:1/-1;font-size:20px;letter-spacing:2px;margin:0 0 2px}
+  #invBrowser .sub{grid-column:1/-1;opacity:.7;font-size:12px;margin:0 0 6px}
+  #invTabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  #invTabs button{background:#1a1e28;color:#ccc;border:1px solid #444;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px}
+  #invTabs button.on{background:#f5a623;color:#000;border-color:#f5a623;font-weight:700}
+  #invGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;max-height:320px;overflow:auto}
+  #invGrid .item{border:2px solid #3a3f4a;border-radius:8px;background:#12151c;padding:8px 6px;cursor:pointer;text-align:center;font-size:11px;line-height:1.3;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+  #invGrid .item:hover{border-color:#f5a623}
+  #invGrid .item.on{border-color:#f5a623;box-shadow:0 0 0 1px #f5a623}
+  #invGrid .swatch{width:36px;height:36px;border-radius:6px;border:1px solid #0006}
+  #invPreview{background:#0a0c10;border:1px solid #333;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;min-height:280px}
+  #invPreview canvas{width:160px;height:240px;image-rendering:pixelated}
+  #invPreview .pname{margin-top:8px;font-size:12px;opacity:.85;text-align:center}
+  #invActions{grid-column:1/-1;display:flex;gap:10px;justify-content:center;margin-top:8px}
+  #invActions button{min-width:120px;padding:10px 16px;border:0;border-radius:6px;font-weight:700;cursor:pointer}
+  #invActions .ok{background:#f5a623;color:#000}
+  #invActions .back{background:#333;color:#fff}
+  @media(max-width:640px){#invBrowser .ibox{grid-template-columns:1fr}#invPreview{min-height:160px;order:-1}}
+  #overlay .mp{margin-top:16px;padding-top:12px;border-top:1px solid #fff2}
+  #overlay .mp .lbl{font-size:13px;letter-spacing:2px;opacity:.7}
+  #overlay input#code{width:120px;margin:10px 6px 0;padding:11px 8px;text-align:center;letter-spacing:6px;font-weight:700;text-transform:uppercase}
+  #roominfo p{font-size:14px;opacity:.7;margin-top:12px}
+  #roomcode{font-size:46px;font-weight:800;letter-spacing:10px;color:#f5a623;margin:2px 0 4px;user-select:text}
+  .keys{font-size:14px;text-align:left;display:inline-block;margin-top:14px;line-height:1.7}
+  .keys b{background:#333;padding:1px 7px;border-radius:4px;border:1px solid #555}
+  #vignette{position:fixed;inset:0;pointer-events:none;z-index:3;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.35) 100%)}
+  #cross{position:fixed;left:50%;top:50%;width:0;height:0;z-index:5;pointer-events:none}
+  #cross i{position:absolute;background:#2dff2d;box-shadow:0 0 2px #000}
+  #cross i:nth-child(1){width:2px;height:8px;left:-1px;top:-14px}
+  #cross i:nth-child(2){width:2px;height:8px;left:-1px;top:6px}
+  #cross i:nth-child(3){width:8px;height:2px;left:-14px;top:-1px}
+  #cross i:nth-child(4){width:8px;height:2px;left:6px;top:-1px}
+  #hit{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:30px;font-weight:900;color:#fff;opacity:0;z-index:6;pointer-events:none;text-shadow:0 0 4px #000}
+  #dmg{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;box-shadow:inset 0 0 160px 40px rgba(200,0,0,.85)}
+  #death{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(120,0,0,.4);z-index:7;pointer-events:none;text-align:center}
+  #death h2{font-size:50px;letter-spacing:4px;text-shadow:0 0 8px #000}
+  #death p{font-size:22px;margin-top:10px;text-shadow:0 0 6px #000}
+  .hud{position:fixed;z-index:5;pointer-events:none;font-weight:700;text-shadow:0 0 4px #000}
+  #hpbox{left:24px;bottom:24px;width:220px}
+  #hpbox .bar{height:12px;background:#0008;border:1px solid #fff6;margin-top:4px}
+  #hpbox .fill{height:100%;width:100%;background:#3ddc5a;transition:width .15s}
+  #ammo{right:28px;bottom:24px;font-size:34px}
+  #ammo small{font-size:18px;opacity:.7}
+  #score{right:24px;top:18px;font-size:20px}
+  #feed{right:24px;top:52px;text-align:right;font-size:15px;line-height:1.5}
+  #feed div{background:#0008;padding:2px 10px;margin-bottom:3px;border-radius:3px;display:block}
+  #map{left:24px;top:18px;font-size:16px;opacity:.8}
+  #msg{left:50%;top:62%;transform:translateX(-50%);font-size:22px;color:#ffd24d}
+  #weapons{left:50%;bottom:24px;transform:translateX(-50%);display:flex;gap:8px;font-size:15px}
+  #weapons span{padding:6px 12px;background:#0007;border:1px solid #fff3;border-radius:4px;opacity:.6}
+  #weapons span.on{opacity:1;border-color:#f5a623;color:#f5a623}
+  #chatlog{left:24px;bottom:84px;width:340px;font-size:14px;font-weight:600;line-height:1.5}
+  #chatlog div{background:#0007;padding:2px 8px;margin-top:3px;border-radius:3px}
+  #chatin{display:none;position:fixed;left:24px;bottom:56px;width:340px;padding:7px 10px;font-size:15px;z-index:9;border:1px solid #f5a623;border-radius:4px;background:#000c;color:#fff;user-select:text}
+  #board{display:none;position:fixed;left:50%;top:90px;transform:translateX(-50%);min-width:380px;padding:18px 26px;background:#000c;border:1px solid #fff3;border-radius:8px;z-index:8;pointer-events:none}
+  #board h3{text-align:center;letter-spacing:2px;margin-bottom:10px}
+  #board table{width:100%;border-collapse:collapse}
+  #board th{font-size:13px;opacity:.7;text-align:left;padding:4px 8px}
+  #board td{padding:5px 8px;border-top:1px solid #fff2}
+  #board th:not(:first-child),#board td:not(:first-child){text-align:center}
+  #board tr.me td{color:#f5a623;font-weight:700}
+  #board .ping{margin-top:10px;font-size:13px;opacity:.7;text-align:right}
+
+  #buymenu h2{margin:0 0 6px;color:#f5a623;font-size:22px}
+  #buymenu .buybtn{display:block;width:100%;margin:6px 0;padding:10px 14px;font-size:15px;font-weight:700;border:0;border-radius:6px;cursor:pointer;background:#2e6db0;color:#fff}
+  #buymenu .buybtn:hover{filter:brightness(1.15)}
+  #buymenu .buybtn:disabled{opacity:.4;cursor:not-allowed}
+  #buymenu .buybtn.have{background:#1a5c2e}
+
+  #tutorial{display:none;position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.72);align-items:center;justify-content:center}
+  #tutorial .tbox{max-width:480px;width:92%;padding:28px 26px;background:#0c0e12f2;border:1px solid #f5a62366;border-radius:12px;text-align:left}
+  #tutorial h2{margin:0 0 6px;color:#f5a623;font-size:24px;letter-spacing:1px}
+  #tutorial .stepnum{font-size:13px;opacity:.6;margin-bottom:10px}
+  #tutorial .tbody{font-size:16px;line-height:1.55;opacity:.95;min-height:90px}
+  #tutorial .tbody b{background:#333;padding:1px 7px;border-radius:4px;border:1px solid #555}
+  #tutorial .tprogress{display:flex;gap:6px;margin:16px 0 12px}
+  #tutorial .tprogress i{flex:1;height:4px;border-radius:2px;background:#333}
+  #tutorial .tprogress i.on{background:#f5a623}
+  #tutorial .tbtns{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+  #tutorial button{margin:0;padding:10px 18px;font-size:15px;font-weight:700;border:0;border-radius:6px;cursor:pointer}
+  #tutorial button.primary{background:#f5a623;color:#000}
+  #tutorial button.ghost{background:#333;color:#fff}
+  #tutorial button:hover{filter:brightness(1.12)}
+  #menu .keys{font-size:13px;opacity:.85}
+</style>
+<script type="importmap">
+{ "imports": { "three": "/vendor/three.module.js" } }
+</script>
+</head>
+<body>
+
+<div id="mapBrowser">
+  <div class="mbox">
+    <h2>ELEGIR MAPA</h2>
+    <p class="sub">Pulsa un mapa para verlo · la vista es el plano real del nivel</p>
+    <div id="mapGrid"></div>
+    <div class="actions">
+      <button id="btnMapOk" class="primary" style="background:#f5a623;color:#000;border:0;padding:10px 18px;border-radius:6px;font-weight:700;cursor:pointer">Usar este mapa</button>
+      <button id="btnMapBack" class="ghost" style="background:#333;color:#fff;border:0;padding:10px 18px;border-radius:6px;cursor:pointer">Volver</button>
+    </div>
+  </div>
+</div>
+
+<div id="invBrowser">
+  <div class="ibox">
+    <h2>INVENTARIO</h2>
+    <p class="sub">Elige cara, ropa, pantalones y tono de piel</p>
+    <div>
+      <div id="invTabs">
+        <button type="button" data-tab="face" class="on">Cara</button>
+        <button type="button" data-tab="shirt">Ropa</button>
+        <button type="button" data-tab="pants">Pantalones</button>
+        <button type="button" data-tab="tone">Piel</button>
+      </div>
+      <div id="invGrid"></div>
+    </div>
+    <div id="invPreview">
+      <canvas id="invCanvas" width="160" height="240"></canvas>
+      <div class="pname" id="invPname">Vista previa</div>
+    </div>
+    <div id="invActions">
+      <button type="button" class="ok" id="btnInvOk">Listo</button>
+      <button type="button" class="back" id="btnInvBack">Volver</button>
+    </div>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="box" id="menu">
+    <h1>BLOCKY <span>STRIKE</span></h1>
+    <p>v1.5.12 — Inventario unificado · mapas · granadas</p>
+    <p style="font-size:13px;opacity:.7"><a href="/privacidad" target="_blank" rel="noopener" style="color:inherit">Política de privacidad</a></p>
+    <input id="name" maxlength="14" placeholder="Tu nombre" autocomplete="off">
+    <div style="margin:8px 0 4px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <button id="btnInv" class="alt">Inventario</button>
+      <button id="btnMaps" class="alt">Mapas</button>
+      <span id="mapLabel" style="align-self:center;font-size:13px;opacity:.85">Dust Blocks</span>
+    </div>
+    <!-- selects ocultos para compatibilidad -->
+    <select id="skinsel" style="display:none"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+    <select id="facesel" style="display:none"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+    <select id="tonesel" style="display:none"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+    <select id="pantsel" style="display:none"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+    <select id="mapsel" style="display:none"><option value="dust">Dust</option><option value="almacen">Almacén</option><option value="cruce">Cruce</option></select>
+    <div><button id="btnSolo">Jugar contra bots</button>
+    <button id="btnPractice" class="alt">Práctica (bomba)</button></div>
+    <div class="mp">
+      <div class="lbl">MULTIJUGADOR</div>
+      <button id="btnCreate" class="alt">Crear sala</button>
+      <input id="code" maxlength="4" placeholder="CÓDIGO" autocomplete="off" spellcheck="false">
+      <button id="btnJoin" class="alt">Unirse</button>
+    </div>
+    <div><button id="btnInstall" class="ghost" style="display:none">Instalar app</button></div>
+    <div id="menuerr"></div>
+    <div style="margin-top:10px"><button id="btnTutorial" class="ghost" style="font-size:14px;padding:8px 16px">Ver tutorial</button></div>
+  </div>
+  <div class="box" id="pause" style="display:none">
+    <h1>PAUSA</h1>
+    <div id="pausemsg"></div>
+    <div id="roominfo" style="display:none">
+      <p>Código de tu sala</p>
+      <div id="roomcode"></div>
+      <button id="btnCopy" class="ghost">Copiar enlace para amigos</button>
+    </div>
+    <div id="mutelist"></div>
+    <div id="opts">
+      <label>Sensibilidad <input type="range" id="sensrange" min="20" max="200" value="100" step="5"><span class="val" id="sensval">100%</span></label>
+      <label>Volumen <input type="range" id="volrange" min="0" max="100" value="80" step="5"><span class="val" id="volval">80%</span></label>
+      <label>Calidad
+        <select id="gfxsel" style="flex:1;padding:6px 8px;border-radius:4px;border:1px solid #555;background:#111;color:#fff">
+          <option value="0">Baja (más FPS)</option>
+          <option value="1">Media</option>
+          <option value="2" selected>Alta</option>
+        </select>
+      </label>
+    </div>
+    <div>
+      <button id="btnResume">Continuar</button>
+      <button id="btnOpts" class="ghost">Opciones</button>
+      <button id="btnExit" class="ghost">Salir al menú</button>
+      <button id="btnTutPause" class="ghost">Tutorial</button>
+    </div>
+  </div>
+</div>
+
+<div id="tutorial">
+  <div class="tbox">
+    <div class="stepnum" id="tstepnum">Paso 1 de 7</div>
+    <h2 id="ttitle">Bienvenido</h2>
+    <div class="tbody" id="tbody"></div>
+    <div class="tprogress" id="tprogress"></div>
+    <div class="tbtns">
+      <button class="ghost" id="tSkip">Saltar</button>
+      <button class="primary" id="tNext">Siguiente</button>
+    </div>
+  </div>
+</div>
+
+<div id="dmg"></div>
+<div id="flash" style="position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:8"></div>
+<div id="death"><h2>ELIMINADO</h2><p id="deathtxt"></p></div>
+<div id="board"></div>
+
+<div id="scope"></div>
+<div id="shield"></div>
+<canvas id="minimap" width="150" height="150"></canvas>
+<div id="roundbar"></div>
+<div id="banner"></div>
+<div id="vignette"></div>
+<div id="cross"><i></i><i></i><i></i><i></i></div>
+<div id="hit">✕</div>
+
+<div class="hud" id="map">Mapa: Dust Blocks</div>
+<div class="hud" id="score">Bajas: 0 · Muertes: 0</div>
+<div class="hud" id="feed"></div>
+<div class="hud" id="chatlog"></div>
+<input id="chatin" maxlength="120" placeholder="Escribe y pulsa Enter..." autocomplete="off">
+<div class="hud" id="hpbox"><span id="hptxt">100</span> HP<div class="bar"><div class="fill" id="hpfill"></div></div></div>
+<div class="hud" id="weapons"><span id="w0">1 Cuchillo</span><span id="w1" class="on">2 Pistola</span><span id="w2">3 SMG</span><span id="w3">4 Rifle</span><span id="w4">5 Escopeta</span><span id="w5">6 Sniper</span><span id="w6">7 HE</span><span id="w7">8 Flash</span><span id="w8">9 Humo</span></div>
+<div id="buymenu" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:20;background:#0a0a0ee0;border:1px solid #f5a623;border-radius:10px;padding:20px 28px;min-width:280px;text-align:center"></div>
+<div class="hud" id="ammo">30 <small>/ 30</small></div>
+<div class="hud" id="msg"></div>
+
+<script type="module" src="game.js"></script>
+<script>
+  // App instalable: registra el service worker y muestra el botón "Instalar app" cuando el navegador lo permite
+  if ('serviceWorker' in navigator) {
+    addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}); });
+  }
+  let installEvt = null;
+  const btnInstall = document.getElementById('btnInstall');
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; btnInstall.style.display = 'inline-block'; });
+  addEventListener('appinstalled', () => { installEvt = null; btnInstall.style.display = 'none'; });
+  btnInstall.addEventListener('click', async () => {
+    if (!installEvt) return;
+    installEvt.prompt();
+    try { await installEvt.userChoice; } catch (e) { /* cancelado */ }
+    installEvt = null; btnInstall.style.display = 'none';
+  });
+</script>
+</body>
+</html>

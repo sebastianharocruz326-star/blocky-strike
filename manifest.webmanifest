@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "Blocky Strike",
+  "short_name": "Blocky Strike",
+  "description": "Shooter 3D en primera persona con estilo de bloques: practica contra bots o juega en línea con amigos.",
+  "lang": "es",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#101216",
+  "theme_color": "#101216",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
